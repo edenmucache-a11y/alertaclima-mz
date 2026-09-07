@@ -1,0 +1,13 @@
+{
+  "name": "alertaclima-mz",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AlertaClima MZ · plataforma de alertas de ciclones e chuvas intensas para Moçambique",
+  "scripts": {
+    "build": "cd frontend && npm install --no-audit --no-fund && npm run build && mkdir -p ../backend/public && cp -r dist/. ../backend/public/ && cd ../backend && npm install --no-audit --no-fund",
+    "start": "cd backend && node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
