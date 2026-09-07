@@ -1,0 +1,57 @@
+# render.yaml — Blueprint para deploy do AlertaClima MZ no Render.com
+# (Free tier: static frontend + web service Node.js)
+#
+# Como usar:
+#  1. Suba este repositório para o GitHub (pode ser privado).
+#  2. Em https://dashboard.render.com/ → "New" → "Blueprint" → aponte para o repo.
+#  3. O Render lê este ficheiro e cria os 2 serviços automaticamente.
+#  4. Defina as variáveis de ambiente no dashboard (SMTP_*, etc.).
+#
+# Resultado:
+#   - Frontend + API: https://alerta-clima-mz.onrender.com
+#   - O iframe na página WordPress aponta para este URL.
+
+services:
+  # Web service que serve a API E o frontend React (build copiado para backend/public/)
+  - type: web
+    name: alerta-clima-mz
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: |
+      cd ../frontend && npm install --no-audit --no-fund && npm run build
+      mkdir -p ../backend/public && cp -r dist/. ../backend/public/
+      cd ../backend && npm install --no-audit --no-fund
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        value: https://www.amosa.org.mz,https://amosa.org.mz,https://alerta-clima-mz.onrender.com
+      - key: PUBLIC_BASE_URL
+        value: https://alerta-clima-mz.onrender.com
+      - key: UNSUBSCRIBE_SECRET
+        generateValue: true
+      # SMTP — preencher no dashboard do Render (Settings → Environment)
+      # - SMTP_HOST=smtp.gmail.com
+      # - SMTP_PORT=465
+      # - SMTP_SECURE=true
+      # - SMTP_USER=alertas@amosa.org.mz
+      # - SMTP_PASS=<App Password do Gmail>
+      # - SMTP_FROM="AlertaClima MZ <alertas@amosa.org.mz>"
+      - key: POLLING_INTERVAL_MIN
+        value: 15
+      - key: MONITORED_LOCATIONS
+        value: Maputo,Beira,Nampula,Quelimane,Tete,Xai-Xai,Chimoio,Lichinga,Pemba,Inhambane
+      - key: RAIN_THRESHOLD_MM
+        value: 50
+      - key: RAIN_THRESHOLD_RED
+        value: 100
+      - key: WIND_THRESHOLD_KMH
+        value: 60
+      - key: WIND_THRESHOLD_RED
+        value: 118

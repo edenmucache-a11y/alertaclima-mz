@@ -1,0 +1,351 @@
+/* AlertaClima · Moçambique — Design tokens */
+:root {
+  --c-green: #16a34a;
+  --c-yellow: #eab308;
+  --c-red: #dc2626;
+  --c-bg: #0f172a;
+  --c-card: #1e293b;
+  --c-text: #e2e8f0;
+  --c-muted: #94a3b8;
+  --c-accent: #38bdf8;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.app__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 1rem;
+}
+
+.app__title { font-size: 1.5rem; margin: 0; }
+.app__title span { color: var(--c-accent); }
+
+.app__subtitle { color: var(--c-muted); font-size: 0.875rem; }
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--c-card);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.card__title { margin: 0 0 0.75rem 0; font-size: 1rem; color: var(--c-muted); }
+
+.alert-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 600px; overflow-y: auto; }
+
+.alert {
+  display: grid;
+  grid-template-columns: 4px 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.alert__bar { width: 4px; align-self: stretch; border-radius: 2px; }
+.alert--green .alert__bar { background: var(--c-green); }
+.alert--yellow .alert__bar { background: var(--c-yellow); }
+.alert--red .alert__bar { background: var(--c-red); }
+
+.alert--red { background: rgba(220, 38, 38, 0.1); }
+
+.alert__location { font-weight: 600; }
+.alert__desc { font-size: 0.8rem; color: var(--c-muted); }
+
+.severity-tag {
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.severity-tag--green { background: var(--c-green); color: #052e16; }
+.severity-tag--yellow { background: var(--c-yellow); color: #422006; }
+.severity-tag--red { background: var(--c-red); color: #fff; }
+
+.map-container { height: 600px; border-radius: 12px; overflow: hidden; }
+
+/* ============================================================
+   Histórico de alertas (não activos)
+   ============================================================ */
+.history-section {
+  max-width: 1200px;
+  margin: 1.5rem auto 0;
+  padding: 0 1.5rem;
+}
+
+.history-section .card {
+  background: #0a0f1a;
+  border: 1px solid #1e293b;
+}
+
+.alert--inactive {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-left: 2px solid #475569;
+}
+
+.alert--inactive:hover {
+  background: rgba(30, 41, 59, 0.5) !important;
+  opacity: 1 !important;
+}
+
+/* ============================================================
+   Subscribe Form
+   ============================================================ */
+.subscribe-section {
+  max-width: 1200px;
+  margin: 1.5rem auto 0;
+  padding: 0 1.5rem;
+}
+
+.subscribe-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+}
+
+.subscribe-tagline {
+  color: var(--c-muted);
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.subscribe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.subscribe-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+@media (max-width: 600px) {
+  .subscribe-row { grid-template-columns: 1fr; }
+}
+
+.subscribe-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--c-muted);
+}
+
+.subscribe-field input,
+.subscribe-field select {
+  padding: 0.6rem 0.75rem;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: var(--c-text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.subscribe-field input:focus,
+.subscribe-field select:focus { border-color: var(--c-accent); }
+
+.subscribe-btn {
+  padding: 0.6rem 1.25rem;
+  background: var(--c-accent);
+  color: #0f172a;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.05s;
+}
+
+.subscribe-btn:hover:not(:disabled) { background: #0ea5e9; }
+.subscribe-btn:active:not(:disabled) { transform: translateY(1px); }
+.subscribe-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.subscribe-msg {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.subscribe-msg--success {
+  background: rgba(22, 163, 74, 0.15);
+  border: 1px solid #16a34a;
+  color: #4ade80;
+}
+
+.subscribe-msg--error {
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid #dc2626;
+  color: #fca5a5;
+}
+
+.subscribe-msg--submitting {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid #38bdf8;
+  color: #7dd3fc;
+}
+
+/* ============================================================
+   AMOSA — secção "Sobre"
+   ============================================================ */
+.about-section {
+  max-width: 1200px;
+  margin: 1.5rem auto 0;
+  padding: 0 1.5rem;
+}
+
+.amosa-card { padding: 0; overflow: hidden; }
+
+.amosa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+  border-bottom: 1px solid #334155;
+}
+
+.amosa-header h2 { color: var(--c-accent); }
+
+.amosa-tagline {
+  margin: 0.25rem 0 0;
+  color: var(--c-muted);
+  font-size: 0.8rem;
+}
+
+.amosa-tagline a {
+  color: var(--c-accent);
+  text-decoration: none;
+}
+
+.amosa-tagline a:hover { text-decoration: underline; }
+
+.amosa-toggle {
+  background: transparent;
+  border: 1px solid #475569;
+  color: var(--c-text);
+  font-size: 1.25rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.amosa-toggle:hover { background: #334155; }
+
+.amosa-body {
+  padding: 1.25rem;
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.amosa-mission {
+  color: var(--c-muted);
+  font-style: italic;
+  border-left: 3px solid var(--c-accent);
+  padding-left: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.amosa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 700px) {
+  .amosa-grid { grid-template-columns: 1fr; }
+}
+
+.amosa-section h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+  color: var(--c-accent);
+}
+
+.amosa-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.amosa-section li {
+  padding: 0.4rem 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--c-text);
+  border-bottom: 1px dashed #334155;
+}
+
+.amosa-section li:last-child { border-bottom: none; }
+
+.amosa-section a {
+  color: var(--c-accent);
+  text-decoration: none;
+}
+
+.amosa-section a:hover { text-decoration: underline; }
+
+.amosa-social { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.amosa-social li { border: none !important; padding: 0 !important; }
+.amosa-social a {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  background: #334155;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+.amosa-social a:hover { background: var(--c-accent); color: #0f172a; }
+
+.app__footer {
+  max-width: 1200px;
+  margin: 1.5rem auto 2rem;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  color: var(--c-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid #334155;
+}
+
+.app__footer a { color: var(--c-accent); text-decoration: none; }
+.app__footer a:hover { text-decoration: underline; }

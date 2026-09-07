@@ -1,0 +1,82 @@
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  AMOSA · AlertaClima MZ — Snippet WordPress (sub-página iframe)     ║
+  ║  Ficheiro: backend/deploy/wordpress-iframe-snippet.html             ║
+  ║  Versão: 8 (2026-09-07)                                             ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+
+  ⚠️  ATENÇÃO — ESTA PARTE TEM DE SER EDITADA  ⚠️
+  ────────────────────────────────────────────────────────────────────
+  Procure a linha mais abaixo marcada com
+      <!-- ⚠️ SUBSTITUIR URL PÚBLICA AQUI -->
+  e troque o `src="..."` do <iframe> pelo URL público onde a app
+  AlertaClima está a correr (Render, seu servidor, etc.).
+
+  Até lá, o iframe não vai carregar para visitantes reais — só no seu
+  computador se o backend local estiver a correr.
+
+  COMO USAR ESTE SNIPPET NO WORDPRESS:
+  ────────────────────────────────────────────────────────────────────
+  1. Entrar em https://www.amosa.org.mz/wp-admin (utilizador: Eden Mucache)
+  2. Páginas → Adicionar nova
+  3. Título: "AlertaClima — Alertas Climáticos em Moçambique"
+  4. Slug (Permalink): alertas-clima
+  5. No editor Divi, adicionar um módulo "Code" (Code Module).
+       OU, no editor clássico, separador "Texto" / "HTML" e colar.
+  6. Colar TODO o conteúdo deste ficheiro (do <style> até ao </div> final).
+  7. ANTES de publicar, editar a linha do <iframe src="..."> com a URL pública.
+  8. Publicar.
+  9. Aparência → Menus → adicionar a página "AlertaClima" ao menu principal.
+  10. Limpar cache do LiteSpeed (Performance → LiteSpeed Cache → Purge All).
+-->
+
+<style>
+  .acmz-wrap { width: 100%; max-width: 1280px; margin: 0 auto; font-family: 'Work Sans', system-ui, -apple-system, sans-serif; }
+  .acmz-banner { background: linear-gradient(135deg, #0a2540 0%, #1a4d7a 100%); color: #fff; padding: 22px 28px; border-radius: 14px 14px 0 0; }
+  .acmz-banner h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
+  .acmz-banner p  { margin: 0; opacity: 0.85; font-size: 14px; }
+  .acmz-frame-wrap { position: relative; padding-bottom: 0; background: #0a2540; border-radius: 0 0 14px 14px; overflow: hidden; }
+  .acmz-frame-wrap iframe { display: block; width: 100%; height: 1800px; border: 0; }
+  .acmz-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: #0a2540; font-size: 16px; transition: opacity 0.4s; }
+  .acmz-loader.hide { opacity: 0; pointer-events: none; }
+  .acmz-footer { padding: 14px 18px; background: #f5f7fa; border-top: 1px solid #e0e5ec; color: #5a6a7a; font-size: 12px; text-align: center; border-radius: 0 0 14px 14px; }
+  .acmz-footer a { color: #22772e; text-decoration: none; font-weight: 600; }
+  @media (max-width: 768px) {
+    .acmz-frame-wrap iframe { height: 2200px; }
+    .acmz-banner h1 { font-size: 18px; }
+  }
+</style>
+
+<div class="acmz-wrap">
+  <div class="acmz-banner">
+    <h1>🌪 AlertaClima MZ · Alertas em tempo real</h1>
+    <p>Ciclones, chuvas intensas, ventos fortes e outros eventos meteorológicos em Moçambique</p>
+  </div>
+
+  <div class="acmz-frame-wrap">
+    <div class="acmz-loader" id="acmzLoader">⏳ A carregar o painel de alertas…</div>
+
+    <!-- ⚠️ SUBSTITUIR URL PÚBLICA AQUI ⚠️
+         Troque o URL abaixo pelo endereço público onde a app está a correr.
+         Exemplos:
+           · https://alerta-clima-mz.onrender.com        (Render free tier)
+           · https://alertas.amosa.org.mz                (subdomínio AMOSA)
+           · https://servidor-amosa.co.mz/alerta-clima   (VPS prório)
+         Não use http://localhost:3001 — isso só funciona na sua máquina. -->
+    <iframe
+      src="https://SUBSTITUIR-PELO-URL-PUBLICO.onrender.com"
+      title="AlertaClima MZ — Dashboard de alertas"
+      loading="eager"
+      allow="geolocation"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      onload="document.getElementById('acmzLoader')?.classList.add('hide');">
+    </iframe>
+  </div>
+
+  <div class="acmz-footer">
+    Dados oficiais: <a href="https://www.inam.gov.mz" target="_blank" rel="noopener">INAM Moçambique</a> ·
+    OpenWeatherMap · Google Weather API ·
+    <a href="https://SUBSTITUIR-PELO-URL-PUBLICO.onrender.com/unsubscribe" target="_blank" rel="noopener">Cancelar subscrição</a> ·
+    <a href="https://www.amosa.org.mz/contacto/" target="_blank" rel="noopener">Contacto AMOSA</a>
+  </div>
+</div>
