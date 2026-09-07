@@ -516,7 +516,7 @@ app.post('/api/dispatch-history', async (req, res) => {
 });
 
 // Endpoint de teste para envio de email
-app.post('/api/test-email', async (req, res) => {
+app.post('/api/test-email', (req, res) => {
   const { to } = req.body || {};
   if (!to) return res.status(400).json({ error: 'to é obrigatório.' });
   const alert = {
@@ -533,6 +533,37 @@ app.post('/api/test-email', async (req, res) => {
     issuedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
   };
-  const result = await emailService.sendAlert(to, alert);
-  res.json({ ok: result.ok, mode: emailService.mode, ...result });
+  // Log estruturado do pedido
+  const testId = `test-${Date.now()}`;
+  console.log(`[test-email:${testId}] pedido recebido: to=${to} mode=${emailService.mode}`);
+  // Resposta imediata (não espera pelo SMTP)
+  res.json({ ok: true, queued: true, testId, mode: emailService.mode, message: 'Email a ser enviado em background. Verifique os logs do Render em 10-30s.' });
+  // Envio em background
+  emailService.sendAlert(to, alert)
+    .then((result) => {
+      console.log(`[test-email:${testId}] resultado: ok=${result.ok} ${result.messageId ? 'messageId=' + result.messageId : 'error=' + (result.error || '?')}`);
+      alertSendLog.push({
+        timestamp: new Date().toISOString(),
+        alertId: alert.id,
+        location: alert.location,
+        severity: alert.severity,
+        riskType: alert.riskType || 'cyclone',
+        riskLabel: alert.riskLabel || 'Ciclone',
+        action: result.ok ? 'test_email_sent' : 'test_email_failed',
+      });
+      if (alertSendLog.length > 100) alertSendLog.splice(0, alertSendLog.length - 100);
+    })
+    .catch((err) => {
+      console.error(`[test-email:${testId}] erro: ${err.message}`);
+      alertSendLog.push({
+        timestamp: new Date().toISOString(),
+        alertId: alert.id,
+        location: alert.location,
+        severity: alert.severity,
+        riskType: 'cyclone',
+        riskLabel: 'Ciclone',
+        action: 'test_email_failed',
+        error: err.message,
+      });
+    });
 });
