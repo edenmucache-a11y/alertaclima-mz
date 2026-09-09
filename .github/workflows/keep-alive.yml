@@ -1,0 +1,14 @@
+name: Keep Render Alive
+on:
+  schedule:
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Render
+        run: |
+          curl -fsS https://alertaclima-mz.onrender.com/api/health
+          curl -fsS https://alertaclima-mz.onrender.com/api/alerts > /dev/null
+          echo "✓ Render acordado"
