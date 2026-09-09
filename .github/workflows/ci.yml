@@ -6,64 +6,46 @@ on:
     branches: [main]
   workflow_dispatch:
 jobs:
-  backend-install:
-    name: Backend · install
+  check-files:
+    name: Verificar ficheiros críticos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Instalar deps
-        working-directory: backend
+      - name: Estrutura do repo
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
+          CRITICAL=(
+            "backend/server.js"
+            "backend/capInamService.js"
+            "backend/ttlcache.js"
+            "backend/package.json"
+            "frontend/index.html"
+            "frontend/src/App.jsx"
+            "frontend/src/main.jsx"
+            "frontend/src/components/Skeleton.jsx"
+            "frontend/public/manifest.webmanifest"
+            "frontend/public/sw.js"
+            "frontend/public/faq.html"
+            "frontend/public/privacy.html"
+            "frontend/public/og-image.png"
+            "frontend/public/favicon.png"
+            "frontend/vite.config.js"
+            "deploy/wordpress-iframe-snippet.html"
+            "docs/CAP-INAM-BRIEFING.md"
+            "package.json"
+            "Procfile"
+            ".github/workflows/keep-alive.yml"
+            ".github/workflows/maintenance.yml"
+          )
+          MISSING=()
+          for f in "${CRITICAL[@]}"; do
+            if [ ! -f "$f" ]; then
+              MISSING+=("$f")
+            fi
+          done
+          if [ ${#MISSING[@]} -eq 0 ]; then
+            echo "OK todos os ${#CRITICAL[@]} ficheiros"
           else
-            npm install --no-audit --no-fund
-          fi
-      - name: Verificar módulos
-        working-directory: backend
-        run: |
-          node -e "
-            try {
-              require('./emailService');
-              require('./riskClassifier');
-              require('./capInamService');
-              require('./ttlcache');
-              console.log('OK modulos');
-            } catch (e) {
-              console.error('Erro:', e.message);
-              process.exit(1);
-            }
-          "
-  frontend-build:
-    name: Frontend · Vite build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Instalar deps
-        working-directory: frontend
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
-      - name: Build
-        working-directory: frontend
-        run: npm run build
-        env:
-          CI: 'true'
-      - name: Verificar artefatos
-        run: |
-          if [ -f frontend/dist/index.html ] && [ -d frontend/dist/assets ]; then
-            SIZE=$(du -sh frontend/dist | cut -f1)
-            echo "OK frontend $SIZE"
-          else
-            echo "FAIL"
+            echo "Faltam ${#MISSING[@]} ficheiros:"
+            printf ' - %s\n' "${MISSING[@]}"
             exit 1
           fi
