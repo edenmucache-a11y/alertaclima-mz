@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  backend-test:
+    name: Backend · Node.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - working-directory: backend
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+      - working-directory: backend
+        run: node -e "console.log('backend deps ok')"
+  frontend-build:
+    name: Frontend · Vite build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - working-directory: frontend
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+      - working-directory: frontend
+        run: npm run build
