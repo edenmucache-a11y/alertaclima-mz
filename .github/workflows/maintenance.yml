@@ -1,0 +1,74 @@
+name: Manutenção Semanal
+on:
+  schedule:
+    - cron: '0 8 * * 1'   # Segunda 08:00 UTC
+  workflow_dispatch:
+jobs:
+  self-check:
+    name: Verificação semanal
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Instalar jq
+        run: sudo apt-get install -y jq > /dev/null 2>&1
+      - name: 1. Health
+        run: |
+          CODE=$(curl -fsS -w "%{http_code}" -o /dev/null https://alertaclima-mz.onrender.com/api/health)
+          if [ "$CODE" = "200" ]; then echo "OK health"; else echo "FAIL health $CODE"; fi
+      - name: 2. Alerts
+        run: |
+          curl -fsS https://alertaclima-mz.onrender.com/api/alerts | jq '.count' | xargs -I {} echo "Alertas: {}"
+      - name: 3. RSS feed
+        run: |
+          curl -fsS https://alertaclima-mz.onrender.com/api/alerts/feed.rss | head -1 | grep -q '<?xml' && echo "OK rss" || echo "FAIL rss"
+      - name: 4. PWA
+        run: |
+          curl -fsS -o /dev/null -w "%{http_code}\n" https://alertaclima-mz.onrender.com/manifest.webmanifest
+      - name: 5. Cache stats
+        run: |
+          curl -fsS https://alertaclima-mz.onrender.com/api/cache/stats | jq '.geocode.hitRate'
+      - name: 6. SW
+        run: |
+          curl -fsS -o /dev/null -w "%{http_code}\n" https://alertaclima-mz.onrender.com/sw.js
+      - name: 7. Páginas
+        run: |
+          for p in faq.html privacy.html; do
+            curl -fsS -o /dev/null -w "$p: %{http_code}\n" "https://alertaclima-mz.onrender.com/$p"
+          done
+      - name: 8. CORS
+        run: |
+          CODE=$(curl -fsS -H "Origin: https://www.amosa.org.mz" -o /dev/null -w "%{http_code}" https://alertaclima-mz.onrender.com/api/alerts)
+          if [ "$CODE" = "200" ]; then echo "OK cors"; else echo "FAIL cors $CODE"; fi
+      - name: 9. Ficheiros críticos
+        run: |
+          CRITICAL=(
+            "backend/server.js"
+            "backend/capInamService.js"
+            "backend/ttlcache.js"
+            "backend/package.json"
+            "frontend/index.html"
+            "frontend/src/App.jsx"
+            "frontend/src/main.jsx"
+            "frontend/src/components/Skeleton.jsx"
+            "frontend/public/manifest.webmanifest"
+            "frontend/public/sw.js"
+            ".github/workflows/ci.yml"
+            ".github/workflows/keep-alive.yml"
+            ".github/workflows/maintenance.yml"
+            "deploy/wordpress-iframe-snippet.html"
+            "docs/CAP-INAM-BRIEFING.md"
+          )
+          MISSING=()
+          for f in "${CRITICAL[@]}"; do
+            [ -f "$f" ] || MISSING+=("$f")
+          done
+          if [ ${#MISSING[@]} -eq 0 ]; then
+            echo "OK todos os ${#CRITICAL[@]} ficheiros"
+          else
+            echo "Faltam:"; printf ' - %s\n' "${MISSING[@]}"
+          fi
+      - name: Resumo
+        if: always()
+        run: |
+          echo "## Manutenção OK" >> $GITHUB_STEP_SUMMARY
+          echo "Data: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
