@@ -2,70 +2,13 @@
 <html lang="pt-MZ">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Primary Meta Tags -->
     <title>AlertaClima MZ · Alertas de Ciclones e Chuvas em Moçambique</title>
-    <meta name="title" content="AlertaClima MZ · Alertas de Ciclones e Chuvas em Moçambique" />
-    <meta name="description" content="Plataforma de alertas climáticos em tempo real para Moçambique. Ciclones, chuvas intensas, ventos fortes e outros eventos meteorológicos — dados do INAM e OpenWeatherMap. Serviço da AMOSA." />
-    <meta name="keywords" content="alertas,clima,moçambique,ciclone,chuva,vento,INAM,AMOSA,Maputo,Beira,Nampula,tempo,meteorologia" />
-    <meta name="author" content="AMOSA — Associação Moçambicana para Saúde e Ambiente" />
-    <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#22772e" />
-    <link rel="canonical" href="https://alertaclima-mz.onrender.com" />
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://alertaclima-mz.onrender.com/" />
-    <meta property="og:title" content="AlertaClima MZ · Alertas de Ciclones e Chuvas em Moçambique" />
-    <meta property="og:description" content="Alertas climáticos em tempo real: ciclones, chuvas intensas, ventos fortes. Moçambique. Dados do INAM + OpenWeatherMap. Serviço da AMOSA." />
-    <meta property="og:locale" content="pt_MZ" />
-    <meta property="og:site_name" content="AlertaClima MZ" />
-    <meta property="og:image" content="https://alertaclima-mz.onrender.com/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="AlertaClima MZ — Dashboard de alertas climáticos de Moçambique" />
-
-    <!-- Twitter / X -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://alertaclima-mz.onrender.com/" />
-    <meta name="twitter:title" content="AlertaClima MZ · Alertas de Ciclones e Chuvas" />
-    <meta name="twitter:description" content="Plataforma de alertas climáticos em tempo real para Moçambique — ciclones, chuvas, ventos. AMOSA + INAM." />
-    <meta name="twitter:image" content="https://alertaclima-mz.onrender.com/og-image.png" />
-    <meta name="twitter:image:alt" content="AlertaClima MZ — Dashboard de alertas climáticos de Moçambique" />
-    <meta name="twitter:creator" content="@amosa_org" />
-    <meta name="twitter:site" content="@amosa_org" />
-
-    <!-- WhatsApp / Telegram (usam OG) -->
-    <meta property="og:image:type" content="image/png" />
-
-    <!-- iOS PWA / Apple -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="AlertaClima MZ" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-
-    <!-- PWA -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-        });
-      }
-    </script>
-
-    <!-- Leaflet CSS (mantido) -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script type="module" src="/src/main.jsx"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
