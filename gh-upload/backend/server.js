@@ -12,6 +12,9 @@ const fs = require('node:fs');
 const emailService = require('./emailService');
 const { historicalAlerts } = require('./historicalAlerts');
 const { enrichAlert } = require('./riskClassifier');
+const capInamService = require('./capInamService');
+const { TTLCache } = require('./ttlcache');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const config = {
@@ -26,6 +29,9 @@ const config = {
   WIND_THRESHOLD_KMH: parseFloat(process.env.WIND_THRESHOLD_KMH || '60'),
   WIND_THRESHOLD_RED: parseFloat(process.env.WIND_THRESHOLD_RED || '118'),
   POLLING_INTERVAL_MIN: parseInt(process.env.POLLING_INTERVAL_MIN || '15', 10),
+  // Cache TTL (segundos) — evita chamadas repetidas ao OWM
+  OWM_TTL_SECONDS: parseInt(process.env.OWM_TTL_SECONDS || '600', 10), // 10 min default
+  GEOCODE_TTL_SECONDS: parseInt(process.env.GEOCODE_TTL_SECONDS || '604800', 10), // 7 dias
 };
 const locationsList = (process.env.MONITORED_LOCATIONS || 'Maputo,Beira,Nampula')
   .split(',').map(s => s.trim()).filter(Boolean);
@@ -58,19 +64,41 @@ const owClient = axios.create({
   params: { appid: config.OPENWEATHER_API_KEY, units: 'metric', lang: 'pt' },
 });
 
+// Caches com TTL — evita chamadas repetidas ao OWM
+const geocodeCache = new TTLCache(config.GEOCODE_TTL_SECONDS, { maxEntries: 100 });
+const weatherCache = new TTLCache(config.OWM_TTL_SECONDS, {
+  maxEntries: 200,
+  staleWhileRevalidate: true, // servir último valor conhecido enquanto actualiza
+});
+// Chave de weather: arredondar coords a 2 casas (~1km) para melhorar hit rate
+function weatherKey(lat, lon) {
+  return `${lat.toFixed(2)},${lon.toFixed(2)}`;
+}
+
 async function geocode(cityName) {
+  const cached = geocodeCache.get(cityName);
+  if (cached !== null) return cached;
   try {
     const url = 'https://api.openweathermap.org/geo/1.0/direct';
     const { data } = await axios.get(url, {
       params: { q: cityName, limit: 1, appid: config.OPENWEATHER_API_KEY },
       timeout: 5_000,
     });
-    return data[0] ?? null;
+    const result = data[0] ?? null;
+    if (result) geocodeCache.set(cityName, result);
+    return result;
   } catch (e) { return null; }
 }
 
 async function getCurrentWeather(lat, lon) {
+  const key = weatherKey(lat, lon);
+  const cached = weatherCache.get(key);
+  if (cached !== null) {
+    // Devolver cópia (não referência) para evitar mutações externas
+    return JSON.parse(JSON.stringify(cached));
+  }
   const { data } = await owClient.get('/weather', { params: { lat, lon } });
+  weatherCache.set(key, data);
   return data;
 }
 
@@ -112,10 +140,40 @@ async function warmUpCache() {
       catch (err) { return null; }
     })
   );
+  // Também buscar alertas oficiais do INAM
+  try {
+    const inamAlerts = await capInamService.fetchLatestInamAlert();
+    for (const alert of inamAlerts) {
+      alertCache.set(alert.id, alert);
+    }
+    if (inamAlerts.length > 0) {
+      console.log(`[cap-inam] ${inamAlerts.length} alerta(s) oficial(is) INAM carregado(s)`);
+    }
+  } catch (e) {
+    console.warn('[cap-inam] warmUp falhou:', e.message);
+  }
   return results.filter(r => r.status === 'fulfilled' && r.value).length;
 }
 
 const app = express();
+
+// Rate limiting — protege contra abuso
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 min
+  max: 100, // 100 requests/min por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados pedidos. Tente novamente em 1 minuto.' },
+});
+const subscribeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5, // 5 subscrições/hora por IP (evita abuse)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Limite de subscrições atingido. Tente novamente em 1 hora.' },
+});
+app.use('/api/', generalLimiter);
+
 // Helmet com CSP relaxada para permitir iframes externos (WordPress) e fontes
 app.use(helmet({
   contentSecurityPolicy: {
@@ -195,6 +253,46 @@ app.post('/api/alerts/recheck', async (_req, res) => {
   res.json({ ok: true, ...result, sendLog: alertSendLog.slice(-10) });
 });
 
+app.get('/api/alerts/feed.rss', (_req, res) => {
+  const alerts = Array.from(alertCache.values())
+    .sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt))
+    .slice(0, 50);
+  const escapeXml = (s) => String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  const items = alerts.map((a) => {
+    const pubDate = new Date(a.issuedAt).toUTCString();
+    const sevLabel = ({ red: '🔴 PERIGO', yellow: '🟡 ATENÇÃO', green: '🟢 Normal' })[a.severity] || a.severity;
+    const title = `[${sevLabel}] ${escapeXml(a.location)} — ${escapeXml((a.description || 'alerta').slice(0, 80))}`;
+    return `    <item>
+      <title>${title}</title>
+      <link>https://alertaclima-mz.onrender.com/?alert=${encodeURIComponent(a.id)}</link>
+      <guid isPermaLink="false">${escapeXml(a.id)}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <category>${escapeXml(a.severity)}</category>
+      <description><![CDATA[<p><strong>${sevLabel}</strong> em <strong>${escapeXml(a.location)}</strong></p><p>${escapeXml(a.description || '')}</p><p>💨 Vento: ${a.windKmh || 0} km/h · 🌧 Chuva: ${a.rainfallMm || 0} mm/h · 🌡 Temp: ${a.temperatureC || 0}°C</p><p>${escapeXml(a.advice || '')}</p>]]></description>
+    </item>`;
+  }).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>AlertaClima MZ · Alertas Climáticos de Moçambique</title>
+    <link>https://alertaclima-mz.onrender.com/</link>
+    <atom:link href="https://alertaclima-mz.onrender.com/api/alerts/feed.rss" rel="self" type="application/rss+xml"/>
+    <description>Alertas em tempo real de ciclones, chuvas intensas, ventos fortes em Moçambique. Fonte: INAM + OpenWeatherMap.</description>
+    <language>pt-MZ</language>
+    <copyright>© 2026 AMOSA</copyright>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <ttl>15</ttl>
+    <image><url>https://alertaclima-mz.onrender.com/favicon.png</url><title>AlertaClima MZ</title><link>https://alertaclima-mz.onrender.com/</link></image>
+${items}
+  </channel>
+</rss>`;
+  res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=300');
+  res.send(xml);
+});
+
 app.get('/api/alerts/:location', (req, res) => {
   const alert = alertCache.get(req.params.location.toLowerCase());
   if (!alert) return res.status(404).json({ error: 'Localização sem alerta registado.' });
@@ -204,6 +302,59 @@ app.get('/api/alerts/:location', (req, res) => {
 app.post('/api/alerts/refresh', async (_req, res) => {
   await warmUpCache();
   res.json({ ok: true, refreshed: alertCache.size });
+});
+
+// Estado do cache TTL (debug + monitorização)
+app.get('/api/cache/stats', (_req, res) => {
+  res.json({
+    geocode: geocodeCache.stats(),
+    weather: weatherCache.stats(),
+    config: {
+      OWM_TTL_SECONDS: config.OWM_TTL_SECONDS,
+      GEOCODE_TTL_SECONDS: config.GEOCODE_TTL_SECONDS,
+    },
+  });
+});
+
+// Feed RSS 2.0 dos alertas activos — apps como Feedly/IFTTT/Slack podem subscrever
+app.get('/api/alerts/feed.rss', (_req, res) => {
+  const alerts = Array.from(alertCache.values())
+    .sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt))
+    .slice(0, 50);
+  const escapeXml = (s) => String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  const items = alerts.map((a) => {
+    const pubDate = new Date(a.issuedAt).toUTCString();
+    const sevLabel = ({ red: '🔴 PERIGO', yellow: '🟡 ATENÇÃO', green: '🟢 Normal' })[a.severity] || a.severity;
+    const title = `[${sevLabel}] ${escapeXml(a.location)} — ${escapeXml((a.description || 'alerta').slice(0, 80))}`;
+    return `    <item>
+      <title>${title}</title>
+      <link>https://alertaclima-mz.onrender.com/?alert=${encodeURIComponent(a.id)}</link>
+      <guid isPermaLink="false">${escapeXml(a.id)}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <category>${escapeXml(a.severity)}</category>
+      <description><![CDATA[<p><strong>${sevLabel}</strong> em <strong>${escapeXml(a.location)}</strong></p><p>${escapeXml(a.description || '')}</p><p>💨 Vento: ${a.windKmh || 0} km/h · 🌧 Chuva: ${a.rainfallMm || 0} mm/h · 🌡 Temp: ${a.temperatureC || 0}°C</p><p>${escapeXml(a.advice || '')}</p>]]></description>
+    </item>`;
+  }).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>AlertaClima MZ · Alertas Climáticos de Moçambique</title>
+    <link>https://alertaclima-mz.onrender.com/</link>
+    <atom:link href="https://alertaclima-mz.onrender.com/api/alerts/feed.rss" rel="self" type="application/rss+xml"/>
+    <description>Alertas em tempo real de ciclones, chuvas intensas, ventos fortes em Moçambique. Fonte: INAM + OpenWeatherMap.</description>
+    <language>pt-MZ</language>
+    <copyright>© 2026 AMOSA</copyright>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <ttl>15</ttl>
+    <image><url>https://alertaclima-mz.onrender.com/favicon.png</url><title>AlertaClima MZ</title><link>https://alertaclima-mz.onrender.com/</link></image>
+${items}
+  </channel>
+</rss>`;
+  res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=300');
+  res.send(xml);
 });
 
 // =================== Push (FCM mock) ===================
@@ -242,7 +393,7 @@ app.get('/api/push/stats', (_req, res) => {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const subscriberLocation = new Map(); // email -> location
 
-app.post('/api/subscribe-email', async (req, res) => {
+app.post('/api/subscribe-email', subscribeLimiter, async (req, res) => {
   const { email, location } = req.body || {};
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email é obrigatório.' });
@@ -516,6 +667,9 @@ app.post('/api/dispatch-history', async (req, res) => {
 });
 
 // Endpoint de teste para envio de email
+// Async (fire-and-forget): responde IMEDIATAMENTE ao cliente e envia o email
+// em background. Necessário porque o Render free tier tem timeout HTTP de 30s,
+// mas o SMTP real pode demorar 30-60s a completar (TLS handshake + auth + queue).
 app.post('/api/test-email', (req, res) => {
   const { to } = req.body || {};
   if (!to) return res.status(400).json({ error: 'to é obrigatório.' });
@@ -542,6 +696,7 @@ app.post('/api/test-email', (req, res) => {
   emailService.sendAlert(to, alert)
     .then((result) => {
       console.log(`[test-email:${testId}] resultado: ok=${result.ok} ${result.messageId ? 'messageId=' + result.messageId : 'error=' + (result.error || '?')}`);
+      // Adicionar ao sendLog para aparecer no dashboard
       alertSendLog.push({
         timestamp: new Date().toISOString(),
         alertId: alert.id,

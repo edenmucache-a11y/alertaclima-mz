@@ -68,6 +68,25 @@ export function AlertList({ alerts, onFocusAlert }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <span style={{ fontSize: '1.4rem' }}>{riskIcon}</span>
                 <span className="alert__location" style={{ flex: 1 }}>{a.location}</span>
+                {a.official && (
+                  <span
+                    title="Alerta oficial do INAM"
+                    style={{
+                      background: 'linear-gradient(135deg, #22772e 0%, #0b771a 100%)',
+                      color: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    🏛️ OFICIAL INAM
+                  </span>
+                )}
                 <span
                   className={`severity-tag severity-tag--${a.severity}`}
                   style={{ background: sev }}

@@ -16,6 +16,7 @@ import { AlertMap } from './components/AlertMap.jsx';
 import { AlertList } from './components/AlertList.jsx';
 import { AboutAMOSA } from './components/AboutAMOSA.jsx';
 import { SubscribeForm } from './components/SubscribeForm.jsx';
+import { SkeletonMap, SkeletonAlertList, SkeletonHeader } from './components/Skeleton.jsx';
 
 function relativeDate(iso) {
   const ms = Date.now() - new Date(iso).getTime();
@@ -61,8 +62,31 @@ export function App() {
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          {loading && <p>A carregar…</p>}
-          {error && <p style={{ color: 'var(--c-red)' }}>⚠ {error}</p>}
+          {loading && !error && (
+            <div style={{ minWidth: 200 }}>
+              <SkeletonHeader />
+            </div>
+          )}
+          {error && (
+            <>
+              <p style={{ color: 'var(--c-red)', margin: 0 }}>⚠ {error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  marginTop: 6,
+                  padding: '4px 10px',
+                  background: 'transparent',
+                  color: 'var(--c-muted)',
+                  border: '1px solid #475569',
+                  borderRadius: 4,
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Tentar novamente
+              </button>
+            </>
+          )}
           {!loading && !error && (
             <>
               <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>
@@ -107,7 +131,7 @@ export function App() {
             )}
           </h2>
           {/* Apenas alertas activos no mapa (fáceis de clicar) */}
-          <AlertMap alerts={active} centerOn={centerOn} zoomTo={zoomTo} />
+          {loading && !error ? <SkeletonMap /> : <AlertMap alerts={active} centerOn={centerOn} zoomTo={zoomTo} />}
         </section>
         <aside className="card">
           <h2 className="card__title">
@@ -116,7 +140,7 @@ export function App() {
               ({totalActive})
             </span>
           </h2>
-          <AlertList alerts={active} onFocusAlert={focusOnMap} />
+          {loading && !error ? <SkeletonAlertList count={4} /> : <AlertList alerts={active} onFocusAlert={focusOnMap} />}
         </aside>
       </main>
 
@@ -185,6 +209,12 @@ export function App() {
           <a href="mailto:amosa.associacao@gmail.com">amosa.associacao@gmail.com</a>{' '}
           · <a href="tel:+25883462650">+258 83 462 650</a> /{' '}
           <a href="tel:+25883462657">+258 83 462 657</a>
+        </p>
+        <p style={{ marginTop: 8, fontSize: '0.8rem' }}>
+          <a href="/faq">FAQ</a> · <a href="/privacy">Privacidade</a> ·{' '}
+          <a href="/api/alerts/feed.rss" target="_blank" rel="noreferrer">RSS</a> ·{' '}
+          <a href="/api/health" target="_blank" rel="noreferrer">Status</a> ·{' '}
+          <a href="/unsubscribe">Cancelar subscrição</a>
         </p>
       </footer>
     </div>
